@@ -23,16 +23,32 @@ Radix tree functions in `rtree.{h,c}`:
 
 | # | n | rtree_lookup_time_s |
 |---:|---:|---:|
-| 1 | 10000 | _ |
-| 2 | 20000 | _ |
-| 3 | 30000 | _ |
-| 4 | 40000 | _ |
-| 5 | 50000 | _ |
-| 6 | 60000 | _ |
-| 7 | 70000 | _ |
-| 8 | 80000 | _ |
-| 9 | 90000 | _ |
-| 10 | 100000 | _ |
+| 1 | 10000 | 0.000000110 |
+| 2 | 20000 | 0.000000218 |
+| 3 | 30000 | 0.000000204 |
+| 4 | 40000 | 0.000000271 |
+| 5 | 50000 | 0.000000215 |
+| 6 | 60000 | 0.000000179 |
+| 7 | 70000 | 0.000000184 |
+| 8 | 80000 | 0.000000450 |
+| 9 | 90000 | 0.000000144 |
+| 10 | 100000 | 0.000000288 |
+
+## Complexity
+
+- `rtree_create`, `rtree_free` - O(1), O(N) (all nodes are visited once)
+- `rtree_insert` - O(m), m = key length (each step eats >= 1 char of key, key <= 30)
+- `rtree_lookup` - O(m), number of nodes on the path depends on key length only
+- `rtree_delete` - O(m), path descent + prune/merge of empty nodes
+- `rtree_print` - O(N) (all nodes are visited)
+
+## Results
+
+Lookup time does not grow with n, it stays in ~0.1 - 0.3 mks.
+A search in a radix tree goes down one path of compressed edges and touches
+only O(m) chars of the key, so the tree size n does not affect the result.
+Fluctuations between rows are caused by the random key of different length
+and cache effects.
 
 ## Review questions
 - What is a prefix tree?
