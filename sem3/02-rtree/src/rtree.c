@@ -112,3 +112,60 @@ rtree *rtree_lookup(rtree *root, char *key) {
     }
     return node->is_end ? node : NULL;
 }
+
+// delete key in subtree, prune empty nodes, returns 1 if key was found
+static int delete_rec(rtree *node, char *key) {
+    if (!*key) {                        // key fully matched
+        if (!node->is_end) return 0;
+        node->is_end = 0;
+        return 1;
+    }
+    rtree *prev = NULL;
+    rtree *cur = node->child;
+    while (cur) {
+        int m = common_len(cur->label, key);
+        if (m > 0 && cur->label[m] == '\0') {   // whole label matched
+            int found = delete_rec(cur, key + m);
+            if (found && !cur->is_end) {
+                if (!cur->child) {              // remove empty leaf
+                    if (prev) prev->next = cur->next;
+                    else node->child = cur->next;
+                    free(cur->label);
+                    free(cur);
+                } else if (!cur->child->next) { // merge single child up
+                    rtree *ch = cur->child;
+                    char *label = malloc(strlen(cur->label) + strlen(ch->label) + 1);
+                    strcpy(label, cur->label);  // cur label + child label
+                    strcat(label, ch->label);
+                    free(cur->label);
+                    cur->label = label;
+                    cur->value = ch->value;
+                    cur->is_end = ch->is_end;
+                    cur->child = ch->child;
+                    free(ch->label);
+                    free(ch);
+                }
+            }
+            return found;
+        }
+        prev = cur;
+        cur = cur->next;
+    }
+    return 0;
+}
+
+// delete key, returns root
+rtree *rtree_delete(rtree *root, char *key) {
+    if (root) delete_rec(root, key);
+    return root;
+}
+
+// print tree, level is indentation
+void rtree_print(rtree *root, int level) {
+    if (!root) return;
+    for (int i = 0; i < level; i++) printf("  ");
+    printf("\"%s\"", root->label);
+    if (root->is_end) printf(" = %u", root->value);
+    printf("\n");
+    for (rtree *c = root->child; c; c = c->next) rtree_print(c, level + 1);
+}
