@@ -14,7 +14,7 @@
 
 Radix tree functions in `rtree.{h,c}`:
 - `struct rtree *rtree_create();`
-- `struct rtree *rtree_insert(struct rtree *root, char *key, char value);`
+- `struct rtree *rtree_insert(struct rtree *root, char *key, uint32_t value);`
 - `struct rtree *rtree_lookup(struct rtree *root, char *key);`
 - `struct rtree *rtree_delete(struct rtree *root, char *key);`
 - `void rtree_print(struct rtree *root, int level);`
