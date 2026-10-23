@@ -58,6 +58,7 @@ static void run_exp1(char **words, int n) {
 }
 
 int main(int argc, char **argv) {
+  /*
     if (argc < 2) {
         fprintf(stderr, "usage: %s <words file>\n", *argv);
         return 1;
@@ -72,5 +73,19 @@ int main(int argc, char **argv) {
     run_exp1(words, n);
     for (int i = 0; i < n; i++) free(*(words + i));
     free(words);
+    return 0;
+  */
+    char *words[4] = {"cat", "catopilot", "asbest", "alcogolism"};
+    rtree* root = rtree_create();
+    
+    for (int i=0; i<4; i++) {
+        root = rtree_insert(root, words[i], i);
+    }
+    rtree_print(root, 0);
+
+    root = rtree_delete(root, words[3]);
+    rtree_print(root, 0);
+
+    rtree_free(root);
     return 0;
 }
