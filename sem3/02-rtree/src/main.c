@@ -75,15 +75,15 @@ int main(int argc, char **argv) {
     free(words);
     return 0;
   */
-    char *words[4] = {"cat", "catopilot", "asbest", "alcogolism"};
+    char *words[5] = {"cat", "catopilot", "alcogol", "asbest", "alcogolism"};
     rtree* root = rtree_create();
     
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<5; i++) {
         root = rtree_insert(root, words[i], i);
     }
     rtree_print(root, 0);
 
-    root = rtree_delete(root, words[3]);
+    root = rtree_delete(root, words[2]);
     rtree_print(root, 0);
 
     rtree_free(root);
