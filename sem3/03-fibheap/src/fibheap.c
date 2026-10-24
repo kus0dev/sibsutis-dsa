@@ -82,3 +82,79 @@ static void fibheap_consolidate(fibheap **heap) {
     }
     free(A);
 }
+
+fibheap *fibheap_create() {
+    return NULL;
+}
+
+void fibheap_free(fibheap *heap) {
+    if (!heap) return;
+    fibheap *cur = heap;
+    do {
+        fibheap *next = cur->right;
+        if (cur->child) fibheap_free(cur->child);
+        if (cur->value) free(cur->value);
+        free(cur);
+        cur = next;
+    } while (cur != heap);
+}
+
+fibheap *fibheap_insert(fibheap *heap, int key, char *value) {
+    fibheap *n = new_node(key, value);
+    if (!n) return heap;
+    if (!heap) {
+        return n;
+    }
+    n->left = heap->left;
+    n->right = heap;
+    heap->left->right = n;
+    heap->left = n;
+    if (n->key < heap->key) heap = n;
+    return heap;
+}
+
+fibheap *fibheap_min(fibheap *heap) {
+    return heap;
+}
+
+fibheap *fibheap_union(fibheap *heap1, fibheap *heap2) {
+    if (!heap1) return heap2;
+    if (!heap2) return heap1;
+    fibheap *t1 = heap1->left;
+    fibheap *t2 = heap2->left;
+    heap1->left = t2;
+    t2->right = heap1;
+    heap2->left = t1;
+    t1->right = heap2;
+    if (heap2->key < heap1->key) heap1 = heap2;
+    return heap1;
+}
+
+fibheap *fibheap_extractmin(fibheap *heap) {
+    if (!heap) return NULL;
+    fibheap *z = heap;
+    if (z->child) {
+        fibheap *c = z->child;
+        do {
+            fibheap *nextc = c->right;
+            c->left = heap->left;
+            c->right = heap;
+            heap->left->right = c;
+            heap->left = c;
+            c->parent = NULL;
+            c = nextc;
+        } while (c != z->child);
+    }
+    z->left->right = z->right;
+    z->right->left = z->left;
+    if (z == z->right) {
+        if (z->value) free(z->value);
+        free(z);
+        return NULL;
+    }
+    heap = z->right;
+    if (z->value) free(z->value);
+    free(z);
+    fibheap_consolidate(&heap);
+    return heap;
+}
