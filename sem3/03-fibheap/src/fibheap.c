@@ -158,3 +158,91 @@ fibheap *fibheap_extractmin(fibheap *heap) {
     fibheap_consolidate(&heap);
     return heap;
 }
+
+static void cut(fibheap **heap, fibheap *x, fibheap *y) {
+    if (x == x->right) y->child = NULL;
+    else {
+        x->right->left = x->left;
+        x->left->right = x->right;
+        if (y->child == x) y->child = x->right;
+    }
+    y->degree--;
+    // add x to root list
+    x->left = (*heap)->left;
+    x->right = (*heap);
+    (*heap)->left->right = x;
+    (*heap)->left = x;
+    x->parent = NULL;
+    x->mark = 0;
+}
+
+static void cascading_cut(fibheap **heap, fibheap *y) {
+    fibheap *z = y->parent;
+    if (z) {
+        if (y->mark == 0) y->mark = 1;
+        else {
+            cut(heap, y, z);
+            cascading_cut(heap, z);
+        }
+    }
+}
+
+fibheap *fibheap_decrease_key(fibheap *heap, fibheap *node, int newkey) {
+    if (newkey > node->key) return heap;
+    node->key = newkey;
+    fibheap *y = node->parent;
+    if (y && node->key < y->key) {
+        cut(&heap, node, y);
+        cascading_cut(&heap, y);
+    }
+    if (node->key < heap->key) heap = node;
+    return heap;
+}
+
+fibheap *fibheap_delete(fibheap *heap, int key) {
+    if (!heap) return NULL;
+    fibheap *cur = heap;
+    do {
+        if (cur->key == key) {
+            fibheap *y = cur->parent;
+            if (y) {
+                if (cur == cur->right) y->child = NULL;
+                else {
+                    cur->right->left = cur->left;
+                    cur->left->right = cur->right;
+                    if (y->child == cur) y->child = cur->right;
+                }
+                y->degree--;
+            } else {
+                cur->left->right = cur->right;
+                cur->right->left = cur->left;
+                if (heap == cur) heap = cur->right;
+            }
+            if (cur->child) {
+                fibheap *c = cur->child;
+                do {
+                    fibheap *nextc = c->right;
+                    c->parent = NULL;
+                    c->left = heap->left;
+                    c->right = heap;
+                    heap->left->right = c;
+                    heap->left = c;
+                    c = nextc;
+                } while (c != cur->child);
+            }
+            if (heap == cur) heap = NULL;
+            else if (heap->key > 1000000000) { /* keep */ }
+            if (heap) {
+                if (cur == cur->right && heap) { /* maybe */ }
+                if (!heap->left) fibheap_consolidate(&heap);
+            }
+            if (cur->value) free(cur->value);
+            free(cur);
+            if (!heap) return NULL;
+            fibheap_consolidate(&heap);
+            return heap;
+        }
+        cur = cur->right;
+    } while (cur != heap);
+    return heap;
+}
