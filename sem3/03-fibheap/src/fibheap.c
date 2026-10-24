@@ -20,7 +20,6 @@ static fibheap *new_node(int key, char *value) {
 
 // link y as child of x
 static void fibheap_link(fibheap *y, fibheap *x) {
-    // remove y from root list
     y->left->right = y->right;
     y->right->left = y->left;
     y->parent = x;
@@ -44,11 +43,16 @@ static void fibheap_consolidate(fibheap **heap) {
     int d = 64;
     fibheap **A = malloc((d) * sizeof(fibheap *));
     for (int i = 0; i < d; i++) A[i] = NULL;
-    fibheap *w = (*heap);
-    fibheap *start = w;
+    fibheap *start = (*heap);
+    fibheap *w = start;
     do {
         fibheap *x = w;
         int xdegree = x->degree;
+        while (xdegree >= d) {
+            A = realloc(A, (xdegree + 20) * sizeof(fibheap *));
+            for (int j = d; j < xdegree + 20; j++) A[j] = NULL;
+            d = xdegree + 20;
+        }
         while (A[xdegree]) {
             fibheap *y = A[xdegree];
             if (x->key > y->key) {
@@ -58,9 +62,9 @@ static void fibheap_consolidate(fibheap **heap) {
             A[xdegree] = NULL;
             xdegree++;
             if (xdegree >= d) {
-                A = realloc(A, (xdegree + 10) * sizeof(fibheap *));
-                for (int j = d; j < xdegree + 10; j++) A[j] = NULL;
-                d = xdegree + 10;
+                A = realloc(A, (xdegree + 20) * sizeof(fibheap *));
+                for (int j = d; j < xdegree + 20; j++) A[j] = NULL;
+                d = xdegree + 20;
             }
         }
         A[xdegree] = x;
@@ -70,14 +74,14 @@ static void fibheap_consolidate(fibheap **heap) {
     for (int i = 0; i < d; i++) {
         if (A[i]) {
             if (!(*heap) || A[i]->key < (*heap)->key) (*heap) = A[i];
-            if (!(*heap)->left) {
-                A[i]->left = A[i]->right = A[i];
-            } else {
-                A[i]->left = (*heap)->left;
-                A[i]->right = (*heap);
-                (*heap)->left->right = A[i];
-                (*heap)->left = A[i];
-            }
+            A[i]->left = A[i];
+            A[i]->right = A[i];
+            A[i]->parent = NULL;
+            if ((*heap) == A[i]) continue;
+            A[i]->left = (*heap)->left;
+            A[i]->right = (*heap);
+            (*heap)->left->right = A[i];
+            (*heap)->left = A[i];
         }
     }
     free(A);
@@ -102,9 +106,7 @@ void fibheap_free(fibheap *heap) {
 fibheap *fibheap_insert(fibheap *heap, int key, char *value) {
     fibheap *n = new_node(key, value);
     if (!n) return heap;
-    if (!heap) {
-        return n;
-    }
+    if (!heap) return n;
     n->left = heap->left;
     n->right = heap;
     heap->left->right = n;
@@ -137,11 +139,11 @@ fibheap *fibheap_extractmin(fibheap *heap) {
         fibheap *c = z->child;
         do {
             fibheap *nextc = c->right;
+            c->parent = NULL;
             c->left = heap->left;
             c->right = heap;
             heap->left->right = c;
             heap->left = c;
-            c->parent = NULL;
             c = nextc;
         } while (c != z->child);
     }
@@ -160,20 +162,19 @@ fibheap *fibheap_extractmin(fibheap *heap) {
 }
 
 static void cut(fibheap **heap, fibheap *x, fibheap *y) {
-    if (x == x->right) y->child = NULL;
+    if (x->right == x) y->child = NULL;
     else {
         x->right->left = x->left;
         x->left->right = x->right;
         if (y->child == x) y->child = x->right;
     }
     y->degree--;
-    // add x to root list
+    x->parent = NULL;
+    x->mark = 0;
     x->left = (*heap)->left;
     x->right = (*heap);
     (*heap)->left->right = x;
     (*heap)->left = x;
-    x->parent = NULL;
-    x->mark = 0;
 }
 
 static void cascading_cut(fibheap **heap, fibheap *y) {
@@ -188,6 +189,7 @@ static void cascading_cut(fibheap **heap, fibheap *y) {
 }
 
 fibheap *fibheap_decrease_key(fibheap *heap, fibheap *node, int newkey) {
+    if (!heap || !node) return heap;
     if (newkey > node->key) return heap;
     node->key = newkey;
     fibheap *y = node->parent;
@@ -196,53 +198,5 @@ fibheap *fibheap_decrease_key(fibheap *heap, fibheap *node, int newkey) {
         cascading_cut(&heap, y);
     }
     if (node->key < heap->key) heap = node;
-    return heap;
-}
-
-fibheap *fibheap_delete(fibheap *heap, int key) {
-    if (!heap) return NULL;
-    fibheap *cur = heap;
-    do {
-        if (cur->key == key) {
-            fibheap *y = cur->parent;
-            if (y) {
-                if (cur == cur->right) y->child = NULL;
-                else {
-                    cur->right->left = cur->left;
-                    cur->left->right = cur->right;
-                    if (y->child == cur) y->child = cur->right;
-                }
-                y->degree--;
-            } else {
-                cur->left->right = cur->right;
-                cur->right->left = cur->left;
-                if (heap == cur) heap = cur->right;
-            }
-            if (cur->child) {
-                fibheap *c = cur->child;
-                do {
-                    fibheap *nextc = c->right;
-                    c->parent = NULL;
-                    c->left = heap->left;
-                    c->right = heap;
-                    heap->left->right = c;
-                    heap->left = c;
-                    c = nextc;
-                } while (c != cur->child);
-            }
-            if (heap == cur) heap = NULL;
-            else if (heap->key > 1000000000) { /* keep */ }
-            if (heap) {
-                if (cur == cur->right && heap) { /* maybe */ }
-                if (!heap->left) fibheap_consolidate(&heap);
-            }
-            if (cur->value) free(cur->value);
-            free(cur);
-            if (!heap) return NULL;
-            fibheap_consolidate(&heap);
-            return heap;
-        }
-        cur = cur->right;
-    } while (cur != heap);
     return heap;
 }
