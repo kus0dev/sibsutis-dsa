@@ -5,9 +5,12 @@
 #include "rtree.h"
 #include <utils.h>
 
-#define N       100000      // total number of elements
-#define STEP    10000       // measurement step
-#define ITERS   100         // iterations for time averaging
+#define MIN_LEN   3 // 6 for exp1               // minimum key length
+#define MAX_LEN   30                            // maximum key length
+#define BUF_SIZE  64                            // buffer size for reading words
+#define N         5 // 100000 for exp1          // total number of elements
+#define STEP      10000                         // measurement step
+#define ITERS     100                           // iterations for time averaging
 
 // read words from file into array (single pass), returns count
 static int read_words(char *path, char ***words) {
@@ -15,12 +18,12 @@ static int read_words(char *path, char ***words) {
     if (!f) return 0;
     char **arr = malloc(N * sizeof(char *));
     int n = 0;
-    char buf[64];
+    char buf[BUF_SIZE];
     while (n < N && fgets(buf, sizeof(buf), f)) {
         size_t len = strlen(buf);
         while (len && (*(buf + len - 1) == '\n' || *(buf + len - 1) == '\r')) len--;
         *(buf + len) = '\0';
-        if (len < 6 || len > 30) continue;     // key constraints
+        if (len < MIN_LEN || len > MAX_LEN) continue;     // key constraints
         *(arr + n) = strdup(buf);
         n++;
     }
@@ -39,7 +42,7 @@ static double measure_rtree_lookup(rtree *root, char *key) {
 
 // Experiment 1: rtree_lookup time, Table 1
 static void run_exp1(char **words, int n) {
-    rtree *root = NULL;
+    rtree *root = rtree_create();
     printf("Table 1. rtree_lookup\n");
     printf("#,n,rtree_lookup_time_s\n");
     int point = 1;
@@ -57,8 +60,24 @@ static void run_exp1(char **words, int n) {
     rtree_free(root);
 }
 
+// words must contain this set: {"cat", "catopilot", "alcogol", "asbest", "alcogolism"}
+static void run_classExp(char **words, int n) {
+    rtree *root = rtree_create();
+    for (int i=0; i<n; i++) {
+        root = rtree_insert(root, *(words + i), i);
+    }
+
+    printf("original rtree:\n");
+    rtree_print(root, 0);
+
+    root = rtree_delete(root, "alcogol");
+    printf("\nafter deleting \"alcogol\":\n");
+    rtree_print(root, 0);
+
+    rtree_free(root);
+}
+
 int main(int argc, char **argv) {
-  /*
     if (argc < 2) {
         fprintf(stderr, "usage: %s <words file>\n", *argv);
         return 1;
@@ -69,23 +88,14 @@ int main(int argc, char **argv) {
         fprintf(stderr, "not enough words: %d\n", n);
         return 1;
     }
+
+    /*
     srand(42);
     run_exp1(words, n);
+    */
+    run_classExp(words, n);
+
     for (int i = 0; i < n; i++) free(*(words + i));
     free(words);
-    return 0;
-  */
-    char *words[5] = {"cat", "catopilot", "alcogol", "asbest", "alcogolism"};
-    rtree* root = rtree_create();
-    
-    for (int i=0; i<5; i++) {
-        root = rtree_insert(root, words[i], i);
-    }
-    rtree_print(root, 0);
-
-    root = rtree_delete(root, words[2]);
-    rtree_print(root, 0);
-
-    rtree_free(root);
     return 0;
 }
