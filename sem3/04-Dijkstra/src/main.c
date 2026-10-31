@@ -34,6 +34,7 @@ static int random_weight(int minw, int maxw) {
 // complete graph, weights in [WEIGHT_MIN; WEIGHT_MAX]
 static graph_matrix *make_full_matrix(int n) {
     graph_matrix *g = graph_matrix_create(n);
+    // add each undirected edge once
     for (int u = 0; u < n; u++)
         for (int v = u + 1; v < n; v++)
             graph_matrix_add_edge(g, u, v, random_weight(WEIGHT_MIN, WEIGHT_MAX));
@@ -46,9 +47,9 @@ static graph_matrix *make_lattice_matrix(int rows, int cols, int minw, int maxw)
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < cols; c++) {
             int u = r * cols + c;
-            if (c + 1 < cols)
+            if (c + 1 < cols)  // right neighbor
                 graph_matrix_add_edge(g, u, u + 1, random_weight(minw, maxw));
-            if (r + 1 < rows)
+            if (r + 1 < rows)  // down neighbor
                 graph_matrix_add_edge(g, u, u + cols, random_weight(minw, maxw));
         }
     }

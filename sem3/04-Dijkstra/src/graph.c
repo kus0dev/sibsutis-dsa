@@ -86,6 +86,7 @@ size_t graph_list_memory(graph_list *g) {
 // copy matrix graph into adjacency list
 graph_list *graph_list_from_matrix(graph_matrix *m) {
     graph_list *g = graph_list_create(m->n);
+    // add each undirected edge once
     for (int u = 0; u < m->n; u++) {
         for (int v = u + 1; v < m->n; v++) {
             int w = *(*(m->weight + u) + v);
