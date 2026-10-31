@@ -1,11 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <limits.h>
 #include "dijkstra.h"
 #include "minheap.h"
 
+// enough space for any int, including sign and '\0'
+#define VERTEX_STR_SIZE (sizeof(int) * CHAR_BIT + 1)
+
+// arrays are 0-based, but vertex numbers are printed from 1
+#define VERTEX_LABEL_OFFSET 1
+
+// distance from source to itself
+#define SOURCE_DISTANCE 0
+
 // minheap stores strings, so put vertex number into a small string
 static minheap *heap_push(minheap *heap, int key, int vertex) {
-    char buf[16];
+    char buf[VERTEX_STR_SIZE];
     snprintf(buf, sizeof(buf), "%d", vertex);
     return minheap_insert(heap, key, buf);
 }
@@ -13,17 +24,17 @@ static minheap *heap_push(minheap *heap, int key, int vertex) {
 // Dijkstra on adjacency matrix, returns array of distances
 int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
     int n = g->n;
-    int *dist = malloc(n * sizeof(int));
-    int *used = calloc(n, sizeof(int));
+    int *dist = malloc(n * sizeof(*dist));
+    _Bool *used = calloc(n, sizeof(*used));  // false = not settled yet
 
     for (int i = 0; i < n; i++) {
-        *(dist + i) = INT_MAX;
-        *(prev + i) = -1;
+        *(dist + i) = INF;
+        *(prev + i) = NO_PREV;
     }
-    *(dist + src) = 0;
+    *(dist + src) = SOURCE_DISTANCE;
 
     minheap *heap = minheap_create(n);
-    heap = heap_push(heap, 0, src);
+    heap = heap_push(heap, SOURCE_DISTANCE, src);
 
     while (heap->size > 0) {
         int u = atoi(*(heap->values));
@@ -32,16 +43,18 @@ int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
 
         // old heap entry, skip it
         if (*(used + u) || du != *(dist + u)) continue;
-        *(used + u) = 1;
+        *(used + u) = true;
 
         // check all possible neighbors
         for (int v = 0; v < n; v++) {
             int w = *(*(g->weight + u) + v);
-            if (w == 0 || *(used + v)) continue;
-            if (du + w < *(dist + v)) {
-                *(dist + v) = du + w;
+            if (w == NO_EDGE || *(used + v)) continue;
+            if (du > INF - w) continue;  // would overflow
+            int nd = du + w;
+            if (nd < *(dist + v)) {
+                *(dist + v) = nd;
                 *(prev + v) = u;
-                heap = heap_push(heap, *(dist + v), v);
+                heap = heap_push(heap, nd, v);
             }
         }
     }
@@ -54,17 +67,17 @@ int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
 // Dijkstra on adjacency list, returns array of distances
 int *dijkstra_list(graph_list *g, int src, int *prev) {
     int n = g->n;
-    int *dist = malloc(n * sizeof(int));
-    int *used = calloc(n, sizeof(int));
+    int *dist = malloc(n * sizeof(*dist));
+    _Bool *used = calloc(n, sizeof(*used));  // false = not settled yet
 
     for (int i = 0; i < n; i++) {
-        *(dist + i) = INT_MAX;
-        *(prev + i) = -1;
+        *(dist + i) = INF;
+        *(prev + i) = NO_PREV;
     }
-    *(dist + src) = 0;
+    *(dist + src) = SOURCE_DISTANCE;
 
     minheap *heap = minheap_create(n);
-    heap = heap_push(heap, 0, src);
+    heap = heap_push(heap, SOURCE_DISTANCE, src);
 
     while (heap->size > 0) {
         int u = atoi(*(heap->values));
@@ -73,16 +86,18 @@ int *dijkstra_list(graph_list *g, int src, int *prev) {
 
         // old heap entry, skip it
         if (*(used + u) || du != *(dist + u)) continue;
-        *(used + u) = 1;
+        *(used + u) = true;
 
         // go through adjacency list of u
         for (edge *e = *(g->adj + u); e; e = e->next) {
             int v = e->to;
             if (*(used + v)) continue;
-            if (du + e->weight < *(dist + v)) {
-                *(dist + v) = du + e->weight;
+            if (du > INF - e->weight) continue;  // would overflow
+            int nd = du + e->weight;
+            if (nd < *(dist + v)) {
+                *(dist + v) = nd;
                 *(prev + v) = u;
-                heap = heap_push(heap, *(dist + v), v);
+                heap = heap_push(heap, nd, v);
             }
         }
     }
@@ -94,15 +109,16 @@ int *dijkstra_list(graph_list *g, int src, int *prev) {
 
 // print path backwards, then restore normal order by recursion
 static void print_path_rec(int *prev, int v) {
-    if (v == -1) return;
-    if (*(prev + v) != -1) print_path_rec(prev, *(prev + v));
-    printf("%d ", v + 1);
+    if (v == NO_PREV) return;
+    if (*(prev + v) != NO_PREV) print_path_rec(prev, *(prev + v));
+    printf("%d ", v + VERTEX_LABEL_OFFSET);
 }
 
 // print path from src to target using prev array
 void print_path(int *prev, int src, int target, int dist) {
-    printf("path %d -> %d: ", src + 1, target + 1);
-    if (dist == INT_MAX) {
+    printf("path %d -> %d: ", src + VERTEX_LABEL_OFFSET,
+           target + VERTEX_LABEL_OFFSET);
+    if (dist == INF) {
         printf("no path\n");
         return;
     }
