@@ -4,9 +4,7 @@
 #include <stddef.h>
 
 // value in matrix that means "no edge"
-enum {
-    NO_EDGE = 0
-};
+#define NO_EDGE 0
 
 // graph stored as adjacency matrix
 typedef struct graph_matrix {
