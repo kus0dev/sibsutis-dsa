@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <utils.h>
 #include "graph.h"
 #include "dijkstra.h"
@@ -9,12 +10,33 @@
 #define COLS 30         // lattice columns
 #define ITERS 20        // runs for time averaging
 
-// complete graph, weights in [20; 100]
+#define LATTICE_VERTICES (ROWS * COLS)
+#define MAX_VERTICES ((N > LATTICE_VERTICES) ? N : LATTICE_VERTICES)
+#define SOURCE_VERTEX 0
+#define LAST_VERTEX (N - 1)
+#define LATTICE_LAST_VERTEX (LATTICE_VERTICES - 1)
+
+#define WEIGHT_MIN 20
+#define WEIGHT_MAX 100
+#define UNIT_WEIGHT 1
+#define RAND_SEED 12345
+#define DIRECTED_EDGES_PER_EDGE 2
+
+#define BYTES_PER_KB 1024.0
+#define BYTES_PER_MB (BYTES_PER_KB * BYTES_PER_KB)
+
+// getrand_int upper bound is exclusive, so add 1 to include maxw
+static int random_weight(int minw, int maxw) {
+    if (minw == maxw) return minw;
+    return getrand_int(minw, maxw + 1);
+}
+
+// complete graph, weights in [WEIGHT_MIN; WEIGHT_MAX]
 static graph_matrix *make_full_matrix(int n) {
     graph_matrix *g = graph_matrix_create(n);
     for (int u = 0; u < n; u++)
         for (int v = u + 1; v < n; v++)
-            graph_matrix_add_edge(g, u, v, getrand_int(20, 101));
+            graph_matrix_add_edge(g, u, v, random_weight(WEIGHT_MIN, WEIGHT_MAX));
     return g;
 }
 
@@ -24,14 +46,10 @@ static graph_matrix *make_lattice_matrix(int rows, int cols, int minw, int maxw)
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < cols; c++) {
             int u = r * cols + c;
-            if (c + 1 < cols) {
-                int w = (minw == maxw) ? minw : getrand_int(minw, maxw + 1);
-                graph_matrix_add_edge(g, u, u + 1, w);
-            }
-            if (r + 1 < rows) {
-                int w = (minw == maxw) ? minw : getrand_int(minw, maxw + 1);
-                graph_matrix_add_edge(g, u, u + cols, w);
-            }
+            if (c + 1 < cols)
+                graph_matrix_add_edge(g, u, u + 1, random_weight(minw, maxw));
+            if (r + 1 < rows)
+                graph_matrix_add_edge(g, u, u + cols, random_weight(minw, maxw));
         }
     }
     return g;
@@ -41,7 +59,7 @@ static graph_matrix *make_lattice_matrix(int rows, int cols, int minw, int maxw)
 static double measure_matrix(graph_matrix *g, int src, int iters) {
     double total = 0;
     for (int i = 0; i < iters; i++) {
-        int *prev = malloc(g->n * sizeof(int));
+        int *prev = malloc(g->n * sizeof(*prev));
         double t = wtime();
         int *dist = dijkstra_matrix(g, src, prev);
         total += wtime() - t;
@@ -55,7 +73,7 @@ static double measure_matrix(graph_matrix *g, int src, int iters) {
 static double measure_list(graph_list *g, int src, int iters) {
     double total = 0;
     for (int i = 0; i < iters; i++) {
-        int *prev = malloc(g->n * sizeof(int));
+        int *prev = malloc(g->n * sizeof(*prev));
         double t = wtime();
         int *dist = dijkstra_list(g, src, prev);
         total += wtime() - t;
@@ -68,80 +86,91 @@ static double measure_list(graph_list *g, int src, int iters) {
 // check that two distance arrays are equal
 static _Bool same_dist(int *a, int *b, int n) {
     for (int i = 0; i < n; i++)
-        if (*(a + i) != *(b + i)) return 0;
-    return 1;
+        if (*(a + i) != *(b + i)) return false;
+    return true;
 }
 
 // print memory in bytes, KB and MB
 static void print_memory(char *name, size_t bytes) {
     printf("%s memory: %zu bytes (%.2f KB, %.2f MB)\n", name, bytes,
-           bytes / 1024.0, bytes / (1024.0 * 1024.0));
+           bytes / BYTES_PER_KB, bytes / BYTES_PER_MB);
 }
 
 int main(void) {
-    srand(12345);
+    srand(RAND_SEED);
 
     // full graph
     printf("Full graph\n");
     graph_matrix *fm = make_full_matrix(N);
     graph_list *fl = graph_list_from_matrix(fm);
-    printf("vertices: %d, edges: %d\n", N, fl->edge_count / 2);
+    printf("vertices: %d, edges: %d\n", N,
+           fl->edge_count / DIRECTED_EDGES_PER_EDGE);
     print_memory("matrix", graph_matrix_memory(fm));
     print_memory("list", graph_list_memory(fl));
 
-    double fm_time = measure_matrix(fm, 0, ITERS);
-    double fl_time = measure_list(fl, 0, ITERS);
+    double fm_time = measure_matrix(fm, SOURCE_VERTEX, ITERS);
+    double fl_time = measure_list(fl, SOURCE_VERTEX, ITERS);
     printf("dijkstra_matrix time: %.9f s\n", fm_time);
     printf("dijkstra_list time: %.9f s\n", fl_time);
 
-    int *prev = malloc(N * sizeof(int));
-    int *fm_dist = dijkstra_matrix(fm, 0, prev);
-    print_path(prev, 0, N - 1, *(fm_dist + N - 1));
-    int *fl_dist = dijkstra_list(fl, 0, prev);
-    print_path(prev, 0, N - 1, *(fl_dist + N - 1));
-    printf("distances equal: %s\n", same_dist(fm_dist, fl_dist, N) ? "yes" : "no");
+    int *prev = malloc(MAX_VERTICES * sizeof(*prev));
+    int *fm_dist = dijkstra_matrix(fm, SOURCE_VERTEX, prev);
+    print_path(prev, SOURCE_VERTEX, LAST_VERTEX, *(fm_dist + LAST_VERTEX));
+    int *fl_dist = dijkstra_list(fl, SOURCE_VERTEX, prev);
+    print_path(prev, SOURCE_VERTEX, LAST_VERTEX, *(fl_dist + LAST_VERTEX));
+    printf("distances equal: %s\n",
+           same_dist(fm_dist, fl_dist, N) ? "yes" : "no");
     free(fm_dist);
     free(fl_dist);
 
-    // lattice graph with weight 1
-    printf("\nLattice graph 30x30\n");
-    graph_matrix *lm = make_lattice_matrix(ROWS, COLS, 1, 1);
+    // lattice graph with unit weights
+    printf("\nLattice graph %dx%d\n", ROWS, COLS);
+    graph_matrix *lm = make_lattice_matrix(ROWS, COLS, UNIT_WEIGHT, UNIT_WEIGHT);
     graph_list *ll = graph_list_from_matrix(lm);
-    printf("vertices: %d, edges: %d\n", ROWS * COLS, ll->edge_count / 2);
+    printf("vertices: %d, edges: %d\n", LATTICE_VERTICES,
+           ll->edge_count / DIRECTED_EDGES_PER_EDGE);
     print_memory("matrix", graph_matrix_memory(lm));
     print_memory("list", graph_list_memory(ll));
 
-    double lm_time = measure_matrix(lm, 0, ITERS);
-    double ll_time = measure_list(ll, 0, ITERS);
+    double lm_time = measure_matrix(lm, SOURCE_VERTEX, ITERS);
+    double ll_time = measure_list(ll, SOURCE_VERTEX, ITERS);
     printf("dijkstra_matrix time: %.9f s\n", lm_time);
     printf("dijkstra_list time: %.9f s\n", ll_time);
 
-    int *lm_dist = dijkstra_matrix(lm, 0, prev);
-    print_path(prev, 0, ROWS * COLS - 1, *(lm_dist + ROWS * COLS - 1));
-    int *ll_dist = dijkstra_list(ll, 0, prev);
-    print_path(prev, 0, ROWS * COLS - 1, *(ll_dist + ROWS * COLS - 1));
-    printf("distances equal: %s\n", same_dist(lm_dist, ll_dist, ROWS * COLS) ? "yes" : "no");
+    int *lm_dist = dijkstra_matrix(lm, SOURCE_VERTEX, prev);
+    print_path(prev, SOURCE_VERTEX, LATTICE_LAST_VERTEX,
+               *(lm_dist + LATTICE_LAST_VERTEX));
+    int *ll_dist = dijkstra_list(ll, SOURCE_VERTEX, prev);
+    print_path(prev, SOURCE_VERTEX, LATTICE_LAST_VERTEX,
+               *(ll_dist + LATTICE_LAST_VERTEX));
+    printf("distances equal: %s\n",
+           same_dist(lm_dist, ll_dist, LATTICE_VERTICES) ? "yes" : "no");
     free(lm_dist);
     free(ll_dist);
 
     // optional: lattice graph with random weights
-    printf("\nLattice graph 30x30, random weights [20; 100]\n");
-    graph_matrix *rm = make_lattice_matrix(ROWS, COLS, 20, 100);
+    printf("\nLattice graph %dx%d, random weights [%d; %d]\n",
+           ROWS, COLS, WEIGHT_MIN, WEIGHT_MAX);
+    graph_matrix *rm = make_lattice_matrix(ROWS, COLS, WEIGHT_MIN, WEIGHT_MAX);
     graph_list *rl = graph_list_from_matrix(rm);
-    printf("vertices: %d, edges: %d\n", ROWS * COLS, rl->edge_count / 2);
+    printf("vertices: %d, edges: %d\n", LATTICE_VERTICES,
+           rl->edge_count / DIRECTED_EDGES_PER_EDGE);
     print_memory("matrix", graph_matrix_memory(rm));
     print_memory("list", graph_list_memory(rl));
 
-    double rm_time = measure_matrix(rm, 0, ITERS);
-    double rl_time = measure_list(rl, 0, ITERS);
+    double rm_time = measure_matrix(rm, SOURCE_VERTEX, ITERS);
+    double rl_time = measure_list(rl, SOURCE_VERTEX, ITERS);
     printf("dijkstra_matrix time: %.9f s\n", rm_time);
     printf("dijkstra_list time: %.9f s\n", rl_time);
 
-    int *rm_dist = dijkstra_matrix(rm, 0, prev);
-    print_path(prev, 0, ROWS * COLS - 1, *(rm_dist + ROWS * COLS - 1));
-    int *rl_dist = dijkstra_list(rl, 0, prev);
-    print_path(prev, 0, ROWS * COLS - 1, *(rl_dist + ROWS * COLS - 1));
-    printf("distances equal: %s\n", same_dist(rm_dist, rl_dist, ROWS * COLS) ? "yes" : "no");
+    int *rm_dist = dijkstra_matrix(rm, SOURCE_VERTEX, prev);
+    print_path(prev, SOURCE_VERTEX, LATTICE_LAST_VERTEX,
+               *(rm_dist + LATTICE_LAST_VERTEX));
+    int *rl_dist = dijkstra_list(rl, SOURCE_VERTEX, prev);
+    print_path(prev, SOURCE_VERTEX, LATTICE_LAST_VERTEX,
+               *(rl_dist + LATTICE_LAST_VERTEX));
+    printf("distances equal: %s\n",
+           same_dist(rm_dist, rl_dist, LATTICE_VERTICES) ? "yes" : "no");
 
     free(prev);
     free(rm_dist);
