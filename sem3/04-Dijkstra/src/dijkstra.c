@@ -17,7 +17,7 @@ int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
     int *used = calloc(n, sizeof(int));
 
     for (int i = 0; i < n; i++) {
-        *(dist + i) = INF;
+        *(dist + i) = INT_MAX;
         *(prev + i) = -1;
     }
     *(dist + src) = 0;
@@ -58,7 +58,7 @@ int *dijkstra_list(graph_list *g, int src, int *prev) {
     int *used = calloc(n, sizeof(int));
 
     for (int i = 0; i < n; i++) {
-        *(dist + i) = INF;
+        *(dist + i) = INT_MAX;
         *(prev + i) = -1;
     }
     *(dist + src) = 0;
@@ -102,7 +102,7 @@ static void print_path_rec(int *prev, int v) {
 // print path from src to target using prev array
 void print_path(int *prev, int src, int target, int dist) {
     printf("path %d -> %d: ", src + 1, target + 1);
-    if (dist >= INF) {
+    if (dist == INT_MAX) {
         printf("no path\n");
         return;
     }

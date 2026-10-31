@@ -1,9 +1,8 @@
 #ifndef DIJKSTRA_H
 #define DIJKSTRA_H
 
+#include <limits.h>
 #include "graph.h"
-
-#define INF 1000000000  // big number, means no path yet
 
 // Dijkstra on adjacency matrix, returns array of distances
 int *dijkstra_matrix(graph_matrix *g, int src, int *prev);
