@@ -3,10 +3,15 @@
 
 #include <stddef.h>
 
+// value in matrix that means "no edge"
+enum {
+    NO_EDGE = 0
+};
+
 // graph stored as adjacency matrix
 typedef struct graph_matrix {
     int n;              // number of vertices
-    int **weight;       // weight[u][v], 0 means no edge
+    int **weight;       // weight[u][v], NO_EDGE means no edge
 } graph_matrix;
 
 // one node of adjacency list

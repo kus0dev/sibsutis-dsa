@@ -7,9 +7,9 @@ graph_matrix *graph_matrix_create(int n) {
     graph_matrix *g = malloc(sizeof(graph_matrix));
     if (!g) return NULL;
     g->n = n;
-    g->weight = malloc(n * sizeof(int *));
+    g->weight = malloc(n * sizeof(*g->weight));
     for (int i = 0; i < n; i++)
-        *(g->weight + i) = calloc(n, sizeof(int));
+        *(g->weight + i) = calloc(n, sizeof(**g->weight));
     return g;
 }
 
@@ -31,8 +31,8 @@ void graph_matrix_add_edge(graph_matrix *g, int u, int v, int w) {
 // memory used by matrix graph in bytes
 size_t graph_matrix_memory(graph_matrix *g) {
     if (!g) return 0;
-    return sizeof(graph_matrix) + g->n * sizeof(int *) +
-           (size_t)g->n * g->n * sizeof(int);
+    return sizeof(graph_matrix) + g->n * sizeof(*g->weight) +
+           (size_t)g->n * g->n * sizeof(**g->weight);
 }
 
 // create empty list graph
@@ -41,7 +41,7 @@ graph_list *graph_list_create(int n) {
     if (!g) return NULL;
     g->n = n;
     g->edge_count = 0;
-    g->adj = calloc(n, sizeof(edge *));
+    g->adj = calloc(n, sizeof(*g->adj));
     return g;
 }
 
@@ -62,7 +62,7 @@ void graph_list_free(graph_list *g) {
 
 // add one directed edge node to list
 static void graph_list_add_directed(graph_list *g, int u, int v, int w) {
-    edge *e = malloc(sizeof(edge));
+    edge *e = malloc(sizeof(*e));
     e->to = v;
     e->weight = w;
     e->next = *(g->adj + u);
@@ -79,7 +79,7 @@ void graph_list_add_edge(graph_list *g, int u, int v, int w) {
 // memory used by list graph in bytes
 size_t graph_list_memory(graph_list *g) {
     if (!g) return 0;
-    return sizeof(graph_list) + g->n * sizeof(edge *) +
+    return sizeof(graph_list) + g->n * sizeof(*g->adj) +
            (size_t)g->edge_count * sizeof(edge);
 }
 
@@ -89,7 +89,7 @@ graph_list *graph_list_from_matrix(graph_matrix *m) {
     for (int u = 0; u < m->n; u++) {
         for (int v = u + 1; v < m->n; v++) {
             int w = *(*(m->weight + u) + v);
-            if (w != 0) graph_list_add_edge(g, u, v, w);
+            if (w != NO_EDGE) graph_list_add_edge(g, u, v, w);
         }
     }
     return g;
