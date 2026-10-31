@@ -57,19 +57,27 @@ The matrix is good for dense graphs: it uses one integer per possible edge and g
 
 ## Results
 
-The measurements were made with `gcc -O0` on 900 vertices. Every time is the average of 20 runs. The program was run several times, and the times changed by about 10% between runs, so the values below are rounded.
+`gcc -O0`, 900 vertices, average of 20 runs.
 
-The full graph has 404,550 undirected edges. The adjacency matrix uses 3,247,216 bytes (3171.11 KB, 3.10 MB). The adjacency list uses 12,952,816 bytes (12649.23 KB, 12.35 MB). The matrix is about 4 times smaller here. A full graph has V² possible edges, and the matrix stores one `int` per pair (4 bytes), while the list stores two directed edge nodes per undirected edge, and one edge node is 16 bytes on this machine. So for a dense graph the matrix wins in memory.
+**Full graph** (404,550 edges)
 
-The full graph time is about 0.003 s for the matrix and 0.05 s for the list. Both versions check about 809,000 directed edges, but the matrix row is a contiguous block of memory, while the list is 12.35 MB of small nodes connected by pointers. The list version spends much more time on cache misses, so the matrix is about 17 times faster on this dense graph.
+- matrix: `3,247,216 B` (`3.10 MB`), `0.003 s`
+- list: `12,952,816 B` (`12.35 MB`), `0.05 s`
+- path: `1 -> 769 -> 900`, length `44`
 
-The 30x30 lattice has 1,740 undirected edges. The matrix still uses 3.10 MB, but the list uses only 62,896 bytes (61.42 KB, 0.06 MB). Here the list is much smaller, because it stores only 3,480 directed edges instead of 810,000 matrix cells. The lattice time is about 0.0015 s for the matrix and 0.00012 s for the list. The matrix version scans all 900 vertices for every settled vertex (about 810,000 checks), while the list version scans only the real lattice edges. The list wins in both memory and time for the sparse lattice.
+**Lattice 30x30** (1,740 edges)
 
-The shortest path from vertex 1 to vertex 900 in the full graph is `1 -> 769 -> 900` with length 44. The direct edge `1 -> 900` is longer than this two-edge path. In the unit lattice the shortest path has length 58, which is the Manhattan distance between opposite corners (29 steps right and 29 steps down). The matrix version returns `1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 49 79 109 139 169 170 200 230 260 290 320 350 380 381 411 441 471 501 531 561 591 621 651 681 711 741 771 801 802 803 804 834 835 836 866 867 897 898 899 900` (length 58). The list version returns another path of the same length, for example `1 31 61 91 121 151 181 211 241 271 301 331 361 391 421 451 481 511 541 542 543 544 545 546 576 577 578 579 580 581 582 583 613 614 615 616 617 618 619 620 621 622 623 624 625 626 627 657 687 717 718 748 778 779 809 810 840 870 900` (length 58). For every graph the distance arrays from the matrix and the list are equal for all 900 vertices.
+- matrix: `3,247,216 B` (`3.10 MB`), `0.0015 s`
+- list: `62,896 B` (`61.42 KB`), `0.00012 s`
+- path length: `58` (matrix and list find different paths of the same length)
 
-With random lattice weights in [20; 100] the shortest path from vertex 1 to vertex 900 has length 2387. The matrix time is about 0.0016 s and the list time is about 0.00019 s. The random weights make the path longer and cause some extra heap updates, but the list is still faster because the lattice has only 3,480 directed edges. The found path is `1 2 32 62 63 93 94 95 96 97 98 128 158 159 189 219 249 279 280 281 311 312 342 343 373 374 375 376 377 407 437 467 497 498 499 529 559 560 561 591 592 593 594 624 654 655 685 686 716 717 718 748 778 808 838 839 869 899 900`, and its total length is 2387.
+**Random lattice** (weights `[20; 100]`)
 
-So the adjacency matrix is the better choice for the dense full graph in memory, and it is also faster because of sequential access. The adjacency list is the better choice for the sparse lattice: it uses about 51 times less memory than the matrix and runs about 12 times faster.
+- matrix: `0.0016 s`
+- list: `0.00019 s`
+- path length: `2387`
+
+Matrix and list distances are equal for all 900 vertices in every case. The matrix is better for the dense graph: less memory and faster row access. The list is better for the sparse lattice: much less memory and faster edge scanning.
 
 ## Review Questions
 
