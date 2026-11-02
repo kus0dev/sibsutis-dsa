@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "minheap.h"
@@ -48,9 +49,20 @@ void minheap_sift_down(minheap *heap, int idx) {
 }
 
 minheap *minheap_create(int capacity) {
-    minheap *heap = (minheap *)malloc(sizeof(minheap));
-    heap->keys = (int *)malloc(capacity * sizeof(int));
-    heap->values = (char **)malloc(capacity * sizeof(char *));
+    minheap *heap = malloc(sizeof(*heap));
+    if (!heap) {
+        fprintf(stderr, "Allocation error\n");
+        return NULL;
+    }
+    heap->keys = malloc(capacity * sizeof(*heap->keys));
+    heap->values = malloc(capacity * sizeof(*heap->values));
+    if (!heap->keys || !heap->values) {
+        fprintf(stderr, "Allocation error\n");
+        free(heap->keys);
+        free(heap->values);
+        free(heap);
+        return NULL;
+    }
     heap->size = 0;
     heap->capacity = capacity;
     return heap;
@@ -66,16 +78,34 @@ void minheap_free(minheap *heap) {
 }
 
 minheap *minheap_insert(minheap *heap, int key, char *value) {
+    if (!heap) return NULL;
     if (heap->size == heap->capacity) {
-        int newcap = heap->capacity * 2;
-        heap->keys = (int *)realloc(heap->keys, newcap * sizeof(int));
-        heap->values = (char **)realloc(heap->values, newcap * sizeof(char *));
+        int newcap = heap->capacity > 0 ? heap->capacity * 2 : 1;
+        int *newkeys = realloc(heap->keys, newcap * sizeof(*heap->keys));
+        if (!newkeys) {
+            fprintf(stderr, "Allocation error\n");
+            return heap;
+        }
+        heap->keys = newkeys;
+        char **newvalues = realloc(heap->values, newcap * sizeof(*heap->values));
+        if (!newvalues) {
+            fprintf(stderr, "Allocation error\n");
+            return heap;
+        }
+        heap->values = newvalues;
         heap->capacity = newcap;
     }
-    *(heap->keys + heap->size) = key;
-    *(heap->values + heap->size) = value ? strdup(value) : NULL;
-    sift_up(heap, heap->size);
+
+    char *copy = value ? strdup(value) : NULL;
+    if (value && !copy) {
+        fprintf(stderr, "Allocation error\n");
+        return heap;
+    }
+    int idx = heap->size;
+    *(heap->keys + idx) = key;
+    *(heap->values + idx) = copy;
     heap->size++;
+    sift_up(heap, idx);
     return heap;
 }
 
