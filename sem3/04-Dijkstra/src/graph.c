@@ -1,0 +1,149 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include "graph.h"
+
+// create empty matrix graph
+graph_matrix *graph_matrix_create(int n) {
+    graph_matrix *g = malloc(sizeof(*g));
+    if (!g) {
+        fprintf(stderr, "Allocation error\n");
+        return NULL;
+    }
+    g->n = n;
+    g->weight = malloc(n * sizeof(*g->weight));
+    if (!g->weight) {
+        fprintf(stderr, "Allocation error\n");
+        free(g);
+        return NULL;
+    }
+    for (int i = 0; i < n; i++) {
+        *(g->weight + i) = calloc(n, sizeof(**g->weight));
+        if (!*(g->weight + i)) {
+            fprintf(stderr, "Allocation error\n");
+            for (int j = 0; j < i; j++)
+                free(*(g->weight + j));
+            free(g->weight);
+            free(g);
+            return NULL;
+        }
+    }
+    return g;
+}
+
+// free matrix graph
+void graph_matrix_free(graph_matrix *g) {
+    if (!g) return;
+    for (int i = 0; i < g->n; i++)
+        free(*(g->weight + i));
+    free(g->weight);
+    free(g);
+}
+
+// add undirected edge to matrix
+void graph_matrix_add_edge(graph_matrix *g, int u, int v, int w) {
+    if (!g) return;
+    *(*(g->weight + u) + v) = w;
+    *(*(g->weight + v) + u) = w;
+}
+
+// memory used by matrix graph in bytes
+size_t graph_matrix_memory(graph_matrix *g) {
+    if (!g) return 0;
+    return sizeof(graph_matrix) + g->n * sizeof(*g->weight) +
+           (size_t)g->n * g->n * sizeof(**g->weight);
+}
+
+// create empty list graph
+graph_list *graph_list_create(int n) {
+    graph_list *g = malloc(sizeof(*g));
+    if (!g) {
+        fprintf(stderr, "Allocation error\n");
+        return NULL;
+    }
+    g->n = n;
+    g->edge_count = 0;
+    g->adj = calloc(n, sizeof(*g->adj));
+    if (!g->adj) {
+        fprintf(stderr, "Allocation error\n");
+        free(g);
+        return NULL;
+    }
+    return g;
+}
+
+// free list graph
+void graph_list_free(graph_list *g) {
+    if (!g) return;
+    for (int i = 0; i < g->n; i++) {
+        edge *cur = *(g->adj + i);
+        while (cur) {
+            edge *next = cur->next;
+            free(cur);
+            cur = next;
+        }
+    }
+    free(g->adj);
+    free(g);
+}
+
+// add one directed edge node to list, false on allocation error
+static _Bool graph_list_add_directed(graph_list *g, int u, int v, int w) {
+    edge *e = malloc(sizeof(*e));
+    if (!e) {
+        fprintf(stderr, "Allocation error\n");
+        return false;
+    }
+    e->to = v;
+    e->weight = w;
+    e->next = *(g->adj + u);
+    *(g->adj + u) = e;
+    g->edge_count++;
+    return true;
+}
+
+// add undirected edge to list (two directed nodes)
+_Bool graph_list_add_edge(graph_list *g, int u, int v, int w) {
+    if (!g) return false;
+    if (!graph_list_add_directed(g, u, v, w)) return false;
+    if (!graph_list_add_directed(g, v, u, w)) {
+        // remove the first node to keep the graph consistent
+        edge *e = *(g->adj + u);
+        *(g->adj + u) = e->next;
+        g->edge_count--;
+        free(e);
+        return false;
+    }
+    return true;
+}
+
+// memory used by list graph in bytes
+size_t graph_list_memory(graph_list *g) {
+    if (!g) return 0;
+    return sizeof(graph_list) + g->n * sizeof(*g->adj) +
+           (size_t)g->edge_count * sizeof(edge);
+}
+
+// copy matrix graph into adjacency list
+graph_list *graph_list_from_matrix(graph_matrix *m) {
+    if (!m) return NULL;
+    graph_list *g = graph_list_create(m->n);
+    if (!g) return NULL;
+    // add each undirected edge once
+    for (int u = 0; u < m->n; u++) {
+        for (int v = u + 1; v < m->n; v++) {
+            int w = *(*(m->weight + u) + v);
+            // every edge is undirected, so both matrix halves must match
+            if (*(*(m->weight + v) + u) != w) {
+                fprintf(stderr, "Graph matrix is not symmetric\n");
+                graph_list_free(g);
+                return NULL;
+            }
+            if (w != NO_EDGE && !graph_list_add_edge(g, u, v, w)) {
+                graph_list_free(g);
+                return NULL;
+            }
+        }
+    }
+    return g;
+}
