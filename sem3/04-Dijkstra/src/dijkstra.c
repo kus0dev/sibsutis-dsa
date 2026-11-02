@@ -23,9 +23,16 @@ static minheap *heap_push(minheap *heap, int key, int vertex) {
 
 // Dijkstra on adjacency matrix, returns array of distances
 int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
+    if (!g || !prev) return NULL;
     int n = g->n;
     int *dist = malloc(n * sizeof(*dist));
     _Bool *used = calloc(n, sizeof(*used));  // false = not settled yet
+    if (!dist || !used) {
+        fprintf(stderr, "Allocation error\n");
+        free(dist);
+        free(used);
+        return NULL;
+    }
 
     for (int i = 0; i < n; i++) {
         *(dist + i) = INF;
@@ -34,6 +41,11 @@ int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
     *(dist + src) = SOURCE_DISTANCE;
 
     minheap *heap = minheap_create(n);
+    if (!heap) {
+        free(dist);
+        free(used);
+        return NULL;
+    }
     heap = heap_push(heap, SOURCE_DISTANCE, src);
 
     while (heap->size > 0) {
@@ -66,9 +78,16 @@ int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
 
 // Dijkstra on adjacency list, returns array of distances
 int *dijkstra_list(graph_list *g, int src, int *prev) {
+    if (!g || !prev) return NULL;
     int n = g->n;
     int *dist = malloc(n * sizeof(*dist));
     _Bool *used = calloc(n, sizeof(*used));  // false = not settled yet
+    if (!dist || !used) {
+        fprintf(stderr, "Allocation error\n");
+        free(dist);
+        free(used);
+        return NULL;
+    }
 
     for (int i = 0; i < n; i++) {
         *(dist + i) = INF;
@@ -77,6 +96,11 @@ int *dijkstra_list(graph_list *g, int src, int *prev) {
     *(dist + src) = SOURCE_DISTANCE;
 
     minheap *heap = minheap_create(n);
+    if (!heap) {
+        free(dist);
+        free(used);
+        return NULL;
+    }
     heap = heap_push(heap, SOURCE_DISTANCE, src);
 
     while (heap->size > 0) {
@@ -116,6 +140,7 @@ static void print_path_rec(int *prev, int v) {
 
 // print path from src to target using prev array
 void print_path(int *prev, int src, int target, int dist) {
+    if (!prev) return;
     printf("path %d -> %d: ", src + VERTEX_LABEL_OFFSET,
            target + VERTEX_LABEL_OFFSET);
     if (dist == INF) {
