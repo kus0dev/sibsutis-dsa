@@ -29,6 +29,7 @@ static void sift_up(minheap *heap, int idx) {
 
 // sift down: restore heap property from idx downwards
 void minheap_sift_down(minheap *heap, int idx) {
+    if (!heap) return;
     while (1) {
         int smallest = idx;
         int left = 2 * idx + 1;
@@ -111,6 +112,7 @@ minheap *minheap_insert(minheap *heap, int key, char *value) {
 
 minheap *build_minheap(int *arr, int n) {
     minheap *heap = minheap_create(n);
+    if (!heap) return NULL;
     for (int i = 0; i < n; i++) {
         *(heap->keys + i) = *(arr + i);
         *(heap->values + i) = NULL;
@@ -126,8 +128,10 @@ minheap *minheap_min(minheap *heap) {
 }
 
 minheap *minheap_union(minheap *heap1, minheap *heap2) {
+    if (!heap1 || !heap2) return NULL;
     int total = heap1->size + heap2->size;
     minheap *newheap = minheap_create(total);
+    if (!newheap) return NULL;
     for (int i = 0; i < heap1->size; i++) {
         *(newheap->keys + i) = *(heap1->keys + i);
         *(newheap->values + i) = NULL;
@@ -143,7 +147,7 @@ minheap *minheap_union(minheap *heap1, minheap *heap2) {
 }
 
 minheap *minheap_extractmin(minheap *heap) {
-    if (heap->size == 0) return heap;
+    if (!heap || heap->size == 0) return heap;
     minheap_swap(heap, 0, heap->size - 1);
     free(*(heap->values + heap->size - 1));
     heap->size--;
@@ -152,6 +156,7 @@ minheap *minheap_extractmin(minheap *heap) {
 }
 
 minheap *minheap_decrease_key(minheap *heap, int key, int newkey) {
+    if (!heap) return heap;
     if (newkey >= key) return heap;
     int idx = -1;
     for (int i = 0; i < heap->size; i++) {
@@ -167,6 +172,7 @@ minheap *minheap_decrease_key(minheap *heap, int key, int newkey) {
 }
 
 minheap *minheap_delete(minheap *heap, int key) {
+    if (!heap) return heap;
     int idx = -1;
     for (int i = 0; i < heap->size; i++) {
         if (*(heap->keys + i) == key) {
