@@ -44,8 +44,8 @@ graph_list *graph_list_create(int n);
 // free list graph
 void graph_list_free(graph_list *g);
 
-// add undirected edge to list (two directed nodes)
-void graph_list_add_edge(graph_list *g, int u, int v, int w);
+// add undirected edge to list (two directed nodes), false on allocation error
+_Bool graph_list_add_edge(graph_list *g, int u, int v, int w);
 
 // memory used by list graph in bytes
 size_t graph_list_memory(graph_list *g);

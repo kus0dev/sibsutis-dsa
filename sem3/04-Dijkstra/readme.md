@@ -13,7 +13,7 @@ Graph functions in `graph.{h,c}`:
 - `void graph_matrix_add_edge(graph_matrix *g, int u, int v, int w);`
 - `size_t graph_matrix_memory(graph_matrix *g);`
 - `graph_list *graph_list_create(int n);`
-- `void graph_list_add_edge(graph_list *g, int u, int v, int w);`
+- `_Bool graph_list_add_edge(graph_list *g, int u, int v, int w);`
 - `size_t graph_list_memory(graph_list *g);`
 - `graph_list *graph_list_from_matrix(graph_matrix *g);`
 
