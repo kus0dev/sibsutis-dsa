@@ -5,7 +5,7 @@
 #include "fibheap.h"
 #include <utils.h>
 
-int main() {
+int experiment() {
     srand(12345);
     int sizes[] = {50000, 100000, 150000, 200000};
     // Table 1
@@ -202,5 +202,50 @@ int main() {
         fibheap_free(fh);
         free(keys);
     }
+    return 0;
+}
+
+static void print_node(fibheap* node, int depth) {
+    if (!node) return;
+
+    for (int i=0; i < depth; i++) printf(" ");
+    printf("%d", node->key);
+
+    if (node->child) {
+        fibheap* child = node->child;
+        do {
+            print_node(child, depth+1);
+            child = child->right;
+        } while (child != node->child);
+    }
+}
+
+static void print_heap(fibheap* heap) {
+    if (!heap) return;
+
+    fibheap* root = heap;
+    do {
+        print_node(root, 0);
+        printf("\n");
+        root = root->right;
+    } while (root != heap);
+
+    printf("min key %d\n", root->key);
+}
+
+int main() {
+    int keys[15] = {22, 8, 21, 4, 17, 31, 7, 11, 9, 29, 34, 46, 42, 15, 37};
+    fibheap* fh = fibheap_create();
+    for (size_t i=0; i<15; i++) {
+        fh = fibheap_insert(fh, *(keys+i), NULL);
+    }
+    print_heap(fh);
+
+    printf("\nafter extractmin:\n");
+    fh = fibheap_extractmin(fh);
+
+    print_heap(fh);
+
+    fibheap_free(fh);
     return 0;
 }
