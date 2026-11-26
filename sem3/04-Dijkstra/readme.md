@@ -22,7 +22,7 @@ Dijkstra functions in `dijkstra.{h,c}`:
 - `int *dijkstra_list(graph_list *g, int src, int *prev);`
 - `void print_path(int *prev, int src, int target, int dist);`
 
-The binary heap is reused from `minheap.{h,c}`. The heap stores a distance as the key and a vertex number as the string value. A shorter distance adds a new pair to the heap, and old pairs are skipped later. This is the lazy version of `decrease_key`, so the existing min-heap code does not need changes.
+The binary heap is reused from `minheap.{h,c}`. The heap stores a distance as the key and a vertex number as the integer value. A shorter distance adds a new pair to the heap, and old pairs are skipped later. This is the lazy version of `decrease_key`, so the existing min-heap code does not need changes.
 
 ## Experimental Research
 
