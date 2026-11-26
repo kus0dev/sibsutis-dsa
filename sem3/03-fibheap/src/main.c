@@ -209,7 +209,7 @@ static void print_node(fibheap* node, int depth) {
     if (!node) return;
 
     for (int i=0; i < depth; i++) printf(" ");
-    printf("%d", node->key);
+    printf("%d (deg=%d)", node->key, node->degree);
 
     if (node->child) {
         fibheap* child = node->child;
