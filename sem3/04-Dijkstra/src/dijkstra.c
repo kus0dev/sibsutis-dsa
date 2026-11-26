@@ -5,21 +5,11 @@
 #include "dijkstra.h"
 #include "minheap.h"
 
-// enough space for any int, including sign and '\0'
-#define VERTEX_STR_SIZE (sizeof(int) * CHAR_BIT + 1)
-
 // arrays are 0-based, but vertex numbers are printed from 1
 #define VERTEX_LABEL_OFFSET 1
 
 // distance from source to itself
 #define SOURCE_DISTANCE 0
-
-// minheap stores strings, so put vertex number into a small string
-static minheap *heap_push(minheap *heap, int key, int vertex) {
-    char buf[VERTEX_STR_SIZE];
-    snprintf(buf, sizeof(buf), "%d", vertex);
-    return minheap_insert(heap, key, buf);
-}
 
 // Dijkstra on adjacency matrix, returns array of distances
 int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
@@ -46,10 +36,10 @@ int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
         free(used);
         return NULL;
     }
-    heap = heap_push(heap, SOURCE_DISTANCE, src);
+    heap = minheap_insert(heap, SOURCE_DISTANCE, src);
 
     while (heap->size > 0) {
-        int u = atoi(*(heap->values));
+        int u = *(heap->values);
         int du = *(heap->keys);
         minheap_extractmin(heap);
 
@@ -66,7 +56,7 @@ int *dijkstra_matrix(graph_matrix *g, int src, int *prev) {
             if (nd < *(dist + v)) {
                 *(dist + v) = nd;
                 *(prev + v) = u;
-                heap = heap_push(heap, nd, v);
+                heap = minheap_insert(heap, nd, v);
             }
         }
     }
@@ -101,10 +91,10 @@ int *dijkstra_list(graph_list *g, int src, int *prev) {
         free(used);
         return NULL;
     }
-    heap = heap_push(heap, SOURCE_DISTANCE, src);
+    heap = minheap_insert(heap, SOURCE_DISTANCE, src);
 
     while (heap->size > 0) {
-        int u = atoi(*(heap->values));
+        int u = *(heap->values);
         int du = *(heap->keys);
         minheap_extractmin(heap);
 
@@ -121,7 +111,7 @@ int *dijkstra_list(graph_list *g, int src, int *prev) {
             if (nd < *(dist + v)) {
                 *(dist + v) = nd;
                 *(prev + v) = u;
-                heap = heap_push(heap, nd, v);
+                heap = minheap_insert(heap, nd, v);
             }
         }
     }

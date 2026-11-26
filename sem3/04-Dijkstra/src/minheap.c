@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "minheap.h"
 
 // internal swap of elements at indices i and j
@@ -9,7 +8,7 @@ static void minheap_swap(minheap *heap, int i, int j) {
     *(heap->keys + i) = *(heap->keys + j);
     *(heap->keys + j) = tmp_key;
 
-    char *tmp_val = *(heap->values + i);
+    int tmp_val = *(heap->values + i);
     *(heap->values + i) = *(heap->values + j);
     *(heap->values + j) = tmp_val;
 }
@@ -71,14 +70,12 @@ minheap *minheap_create(int capacity) {
 
 void minheap_free(minheap *heap) {
     if (!heap) return;
-    for (int i = 0; i < heap->size; i++)
-        free(*(heap->values + i));
     free(heap->keys);
     free(heap->values);
     free(heap);
 }
 
-minheap *minheap_insert(minheap *heap, int key, char *value) {
+minheap *minheap_insert(minheap *heap, int key, int value) {
     if (!heap) return NULL;
     if (heap->size == heap->capacity) {
         int newcap = heap->capacity > 0 ? heap->capacity * 2 : 1;
@@ -88,7 +85,7 @@ minheap *minheap_insert(minheap *heap, int key, char *value) {
             return heap;
         }
         heap->keys = newkeys;
-        char **newvalues = realloc(heap->values, newcap * sizeof(*heap->values));
+        int *newvalues = realloc(heap->values, newcap * sizeof(*heap->values));
         if (!newvalues) {
             fprintf(stderr, "Allocation error\n");
             return heap;
@@ -97,14 +94,9 @@ minheap *minheap_insert(minheap *heap, int key, char *value) {
         heap->capacity = newcap;
     }
 
-    char *copy = value ? strdup(value) : NULL;
-    if (value && !copy) {
-        fprintf(stderr, "Allocation error\n");
-        return heap;
-    }
     int idx = heap->size;
     *(heap->keys + idx) = key;
-    *(heap->values + idx) = copy;
+    *(heap->values + idx) = value;
     heap->size++;
     sift_up(heap, idx);
     return heap;
@@ -115,7 +107,7 @@ minheap *build_minheap(int *arr, int n) {
     if (!heap) return NULL;
     for (int i = 0; i < n; i++) {
         *(heap->keys + i) = *(arr + i);
-        *(heap->values + i) = NULL;
+        *(heap->values + i) = 0;
     }
     heap->size = n;
     for (int i = n / 2 - 1; i >= 0; i--)
@@ -134,11 +126,11 @@ minheap *minheap_union(minheap *heap1, minheap *heap2) {
     if (!newheap) return NULL;
     for (int i = 0; i < heap1->size; i++) {
         *(newheap->keys + i) = *(heap1->keys + i);
-        *(newheap->values + i) = NULL;
+        *(newheap->values + i) = 0;
     }
     for (int i = 0; i < heap2->size; i++) {
         *(newheap->keys + heap1->size + i) = *(heap2->keys + i);
-        *(newheap->values + heap1->size + i) = NULL;
+        *(newheap->values + heap1->size + i) = 0;
     }
     newheap->size = total;
     for (int i = total / 2 - 1; i >= 0; i--)
@@ -149,7 +141,6 @@ minheap *minheap_union(minheap *heap1, minheap *heap2) {
 minheap *minheap_extractmin(minheap *heap) {
     if (!heap || heap->size == 0) return heap;
     minheap_swap(heap, 0, heap->size - 1);
-    free(*(heap->values + heap->size - 1));
     heap->size--;
     minheap_sift_down(heap, 0);
     return heap;
@@ -182,7 +173,6 @@ minheap *minheap_delete(minheap *heap, int key) {
     }
     if (idx == -1) return heap;
     minheap_swap(heap, idx, heap->size - 1);
-    free(*(heap->values + heap->size - 1));
     heap->size--;
     if (idx < heap->size) {
         if (idx > 0 && *(heap->keys + idx) < *(heap->keys + (idx - 1) / 2))
