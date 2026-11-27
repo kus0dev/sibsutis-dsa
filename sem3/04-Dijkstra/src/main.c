@@ -5,10 +5,10 @@
 #include "graph.h"
 #include "dijkstra.h"
 
-#define N 900           // number of vertices
-#define ROWS 30         // lattice rows
-#define COLS 30         // lattice columns
-#define ITERS 20        // runs for time averaging
+#define N 5            // number of vertices
+#define ROWS 5         // lattice rows
+#define COLS 5         // lattice columns
+#define ITERS 20       // runs for time averaging
 
 #define LATTICE_VERTICES (ROWS * COLS)
 #define MAX_VERTICES ((N > LATTICE_VERTICES) ? N : LATTICE_VERTICES)
@@ -104,6 +104,20 @@ static void print_memory(char *name, size_t bytes) {
            bytes / BYTES_PER_KB, bytes / BYTES_PER_MB);
 }
 
+static void print_matrix_graph(graph_matrix *g) {
+    int n = g->n;
+    printf("matrix:\n");
+
+    printf("    ");
+    for (int v=0; v<n; v++) printf("%4d", v+1);
+    printf("\n");
+    for (int u=0; u<n; u++) {
+        printf("%4d ", u+1);
+        for (int v=0; v<n; v++) printf("%4d", *(*(g->weight+v)+u));
+        printf("\n");
+    }
+}
+
 int main(void) {
     srand(RAND_SEED);
     int *prev = check_alloc(malloc(MAX_VERTICES * sizeof(*prev)));
@@ -128,6 +142,9 @@ int main(void) {
     print_path(prev, SOURCE_VERTEX, LAST_VERTEX, *(fl_dist + LAST_VERTEX));
     printf("distances equal: %s\n",
            same_dist(fm_dist, fl_dist, N) ? "yes" : "no");
+    
+    print_matrix_graph(fm);
+
     free(fm_dist);
     free(fl_dist);
 
@@ -153,6 +170,9 @@ int main(void) {
                *(ll_dist + LATTICE_LAST_VERTEX));
     printf("distances equal: %s\n",
            same_dist(lm_dist, ll_dist, LATTICE_VERTICES) ? "yes" : "no");
+    
+    print_matrix_graph(lm);
+
     free(lm_dist);
     free(ll_dist);
 
@@ -179,6 +199,8 @@ int main(void) {
                *(rl_dist + LATTICE_LAST_VERTEX));
     printf("distances equal: %s\n",
            same_dist(rm_dist, rl_dist, LATTICE_VERTICES) ? "yes" : "no");
+
+    print_matrix_graph(rm);
 
     free(prev);
     free(rm_dist);
